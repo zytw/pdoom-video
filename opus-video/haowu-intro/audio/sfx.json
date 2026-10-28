@@ -1,0 +1,12 @@
+{"duration": 5, "events": [
+ {"t": 0.05, "sound": "whoosh", "gain": 0.6},
+ {"t": 0.45, "sound": "impact", "gain": 0.7},
+ {"t": 1.0, "sound": "pop", "gain": 0.9},
+ {"t": 1.05, "sound": "pop", "gain": 0.5}, {"t": 1.13, "sound": "pop", "gain": 0.5}, {"t": 1.21, "sound": "pop", "gain": 0.5},
+ {"t": 1.29, "sound": "pop", "gain": 0.5}, {"t": 1.37, "sound": "pop", "gain": 0.5}, {"t": 1.45, "sound": "pop", "gain": 0.5},
+ {"t": 1.95, "sound": "whoosh", "gain": 0.6},
+ {"t": 2.25, "sound": "click", "gain": 0.5}, {"t": 2.34, "sound": "click", "gain": 0.5}, {"t": 2.43, "sound": "click", "gain": 0.5}, {"t": 2.52, "sound": "click", "gain": 0.5},
+ {"t": 2.75, "sound": "whoosh", "gain": 0.35},
+ {"t": 2.85, "sound": "success", "gain": 0.5},
+ {"t": 3.6, "sound": "tick", "gain": 0.4}
+]}

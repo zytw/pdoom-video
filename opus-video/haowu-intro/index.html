@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>好物分享片头 · 开箱弹跳</title>
+<style>
+@font-face { font-family: "KuaiLe"; src: url("fonts/ZCOOLKuaiLe.ttf"); }
+@font-face { font-family: "NotoSC"; src: url("fonts/NotoSansSC.ttf"); font-weight: 100 900; }
+html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #FFF4E4; }
+#stage { position: absolute; inset: 0; overflow: hidden; }
+svg { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="stage">
+<svg id="svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <pattern id="dots" width="36" height="36" patternUnits="userSpaceOnUse">
+      <circle cx="18" cy="18" r="2.6" fill="#F1DCC0"/>
+    </pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#7A4A22" flood-opacity="0.22"/>
+    </filter>
+    <clipPath id="tagClip"><path id="tagClipPath"/></clipPath>
+    <linearGradient id="shine" x1="0" x2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="#FFF4E4"/>
+  <rect width="1080" height="1920" fill="url(#dots)"/>
+  <g id="rays"></g>
+  <g id="cam">
+    <g id="box"></g>
+    <g id="strings"></g>
+    <g id="stickers"></g>
+    <g id="tag"></g>
+    <g id="sub"></g>
+    <g id="sparkles"></g>
+  </g>
+</svg>
+</div>
+<script>
+window.ready = false;
+const NS = "http://www.w3.org/2000/svg";
+const $ = id => document.getElementById(id);
+const el = (tag, attrs = {}, parent) => {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+};
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const smooth = (a, b, t) => { const x = clamp((t - a) / (b - a)); return x * x * (3 - 2 * x); };
+const easeOut = x => 1 - Math.pow(1 - clamp(x), 3);
+const easeIn = x => Math.pow(clamp(x), 3);
+function spring(x, w = 16, z = 0.72) {
+  if (x <= 0) return 0;
+  const wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * x) * (Math.cos(wd * x) + (z * w / wd) * Math.sin(wd * x));
+}
+
+// ---- 可改参数 ----
+const PARAMS = new URLSearchParams(location.search);
+const NAME = PARAMS.get("name") || "好物日记";          // 频道名（占位）
+const SUB = PARAMS.get("sub") || "认真挑过 · 才敢推荐";
+const C = { cream: "#FFF4E4", ink: "#3B2A20", coral: "#FF6B57", kraft: "#D99A5B", kraftDark: "#B97A3E", kraftLight: "#EDB878", ray: "#FFE6C2" };
+
+// 时间表（120 BPM，一拍 0.5s）
+const T = { land: 0.45, pop: 1.0, burst: 1.05, boxOut: 2.0, tag: 2.0, chars: 2.25, sub: 2.75, shine: 3.6 };
+
+// ---- 背景光芒 ----
+const rays = $("rays");
+for (let i = 0; i < 16; i++) {
+  const a0 = (i / 16) * Math.PI * 2, a1 = a0 + Math.PI / 16;
+  const R = 1800;
+  el("path", { d: `M0 0 L${R * Math.cos(a0)} ${R * Math.sin(a0)} L${R * Math.cos(a1)} ${R * Math.sin(a1)} Z`, fill: C.ray }, rays);
+}
+
+// ---- 纸箱 ----
+const box = $("box");
+const boxShadow = el("ellipse", { cx: 0, cy: 175, rx: 250, ry: 26, fill: "#7A4A22", opacity: 0.18 }, box);
+const boxBody = el("g", {}, box);
+el("rect", { x: -230, y: -10, width: 460, height: 190, rx: 14, fill: C.kraft }, boxBody);
+el("rect", { x: 120, y: -10, width: 110, height: 190, rx: 14, fill: C.kraftDark, opacity: 0.55 }, boxBody);
+el("rect", { x: -40, y: -10, width: 80, height: 190, fill: C.kraftLight, opacity: 0.7 }, boxBody);
+const boxHole = el("rect", { x: -214, y: -16, width: 428, height: 26, rx: 10, fill: "#6E4421", opacity: 0 }, boxBody);
+const heart = el("path", { d: "M0 128 C-38 98 -60 78 -60 56 C-60 38 -46 26 -30 26 C-16 26 -6 34 0 44 C6 34 16 26 30 26 C46 26 60 38 60 56 C60 78 38 98 0 128 Z", fill: C.coral, transform: "translate(-140,-10) scale(0.55)" }, boxBody);
+const lid = el("g", {}, box);
+el("rect", { x: -250, y: -70, width: 500, height: 72, rx: 14, fill: C.kraftLight }, lid);
+el("rect", { x: -40, y: -70, width: 80, height: 72, fill: "#F6CE94" }, lid);
+el("rect", { x: -250, y: -12, width: 500, height: 14, rx: 6, fill: C.kraftDark, opacity: 0.35 }, lid);
+
+// ---- 好物贴纸 ----
+function icon(kind, g) {
+  switch (kind) {
+    case "lipstick":
+      el("rect", { x: -26, y: 0, width: 52, height: 62, rx: 8, fill: "#E8B04A" }, g);
+      el("rect", { x: -20, y: -18, width: 40, height: 22, rx: 4, fill: "#F3D27E" }, g);
+      el("path", { d: "M-16 -18 L-16 -58 Q-16 -70 0 -76 L16 -66 L16 -18 Z", fill: "#E8445A" }, g);
+      break;
+    case "cup":
+      el("path", { d: "M-46 -24 L46 -24 L38 52 Q36 64 24 64 L-24 64 Q-36 64 -38 52 Z", fill: "#7FB7E8" }, g);
+      el("path", { d: "M44 -6 Q74 -4 70 22 Q66 42 40 40", fill: "none", stroke: "#7FB7E8", "stroke-width": 12, "stroke-linecap": "round" }, g);
+      el("rect", { x: -46, y: -34, width: 92, height: 14, rx: 7, fill: "#5A9AD3" }, g);
+      for (const x of [-18, 2, 22]) el("path", { d: `M${x} -46 q-10 -12 0 -24 q10 -12 0 -24`, fill: "none", stroke: "#C9A88A", "stroke-width": 6, "stroke-linecap": "round" }, g);
+      break;
+    case "headphones":
+      el("path", { d: "M-56 22 L-56 -6 Q-56 -62 0 -62 Q56 -62 56 -6 L56 22", fill: "none", stroke: "#3B2A20", "stroke-width": 14, "stroke-linecap": "round" }, g);
+      el("rect", { x: -72, y: 4, width: 38, height: 62, rx: 16, fill: "#FF8A6E" }, g);
+      el("rect", { x: 34, y: 4, width: 38, height: 62, rx: 16, fill: "#FF8A6E" }, g);
+      break;
+    case "plant":
+      el("path", { d: "M0 10 Q-60 -10 -54 -66 Q-6 -52 0 10 Z", fill: "#5DBB76" }, g);
+      el("path", { d: "M0 10 Q60 -14 50 -72 Q2 -52 0 10 Z", fill: "#7ED394" }, g);
+      el("path", { d: "M0 10 Q-8 -40 4 -82 Q18 -40 0 10 Z", fill: "#48A863" }, g);
+      el("path", { d: "M-42 6 L42 6 L32 68 L-32 68 Z", fill: "#E07A4F" }, g);
+      el("rect", { x: -48, y: 0, width: 96, height: 16, rx: 6, fill: "#C9653D" }, g);
+      break;
+    case "perfume":
+      el("rect", { x: -14, y: -72, width: 28, height: 22, rx: 4, fill: "#E8B04A" }, g);
+      el("rect", { x: -8, y: -52, width: 16, height: 14, fill: "#F3D27E" }, g);
+      el("rect", { x: -48, y: -40, width: 96, height: 104, rx: 22, fill: "#F7A8C4" }, g);
+      el("rect", { x: -30, y: -24, width: 16, height: 66, rx: 8, fill: "#fff", opacity: 0.6 }, g);
+      break;
+    case "bag":
+      el("path", { d: "M-26 -22 Q-26 -66 0 -66 Q26 -66 26 -22", fill: "none", stroke: "#3B2A20", "stroke-width": 10, "stroke-linecap": "round" }, g);
+      el("path", { d: "M-56 -30 L56 -30 L64 66 L-64 66 Z", fill: "#FFC94A" }, g);
+      el("path", { d: "M-14 18 l10 10 l20 -22", fill: "none", stroke: "#3B2A20", "stroke-width": 9, "stroke-linecap": "round", "stroke-linejoin": "round" }, g);
+      break;
+  }
+}
+const STICKERS = [
+  { kind: "lipstick",   bg: "#FFE1E4", x: 205, y: 470,  rot: -10, arc: 360 },
+  { kind: "cup",        bg: "#E2F0FB", x: 875, y: 440,  rot: 9,   arc: 420 },
+  { kind: "headphones", bg: "#FFE7DC", x: 160, y: 1270, rot: 8,   arc: 220 },
+  { kind: "plant",      bg: "#E3F5E7", x: 915, y: 1300, rot: -8,  arc: 240 },
+  { kind: "perfume",    bg: "#FDE6F0", x: 360, y: 1520, rot: -5,  arc: 160 },
+  { kind: "bag",        bg: "#FFF1C9", x: 735, y: 1530, rot: 6,   arc: 170 },
+];
+const stickerG = $("stickers");
+STICKERS.forEach((s, i) => {
+  const g = el("g", { filter: "url(#shadow)" }, stickerG);
+  el("circle", { r: 118, fill: "#fff" }, g);
+  el("circle", { r: 100, fill: s.bg }, g);
+  const ig = el("g", { transform: "scale(1.15)" }, g);
+  icon(s.kind, ig);
+  s.node = g;
+  s.t0 = T.burst + i * 0.08;
+});
+
+// ---- 吊牌 + 频道名 ----
+const tag = $("tag");
+const string = el("path", { fill: "none", stroke: C.ink, "stroke-width": 5, "stroke-linecap": "round" }, $("strings"));
+const tagBody = el("g", {}, tag);
+const TW = 800, TH = 300;
+const tagPath = `M${-TW / 2 + 70} ${-TH / 2} L${TW / 2 - 28} ${-TH / 2} Q${TW / 2} ${-TH / 2} ${TW / 2} ${-TH / 2 + 28} L${TW / 2} ${TH / 2 - 28} Q${TW / 2} ${TH / 2} ${TW / 2 - 28} ${TH / 2} L${-TW / 2 + 70} ${TH / 2} L${-TW / 2} 0 Z`;
+el("path", { d: tagPath, fill: C.ink, transform: "translate(10,12)", opacity: 0.9 }, tagBody);
+el("path", { d: tagPath, fill: C.coral }, tagBody);
+$("tagClipPath").setAttribute("d", tagPath);
+el("circle", { cx: -TW / 2 + 62, cy: 0, r: 18, fill: C.cream, stroke: C.ink, "stroke-width": 5 }, tagBody);
+el("path", { d: tagPath, fill: "none", stroke: C.ink, "stroke-width": 6 }, tagBody);
+const shine = el("rect", { x: -120, y: -TH, width: 120, height: TH * 2, fill: "url(#shine)", "clip-path": "url(#tagClip)" }, tagBody);
+const chars = [...NAME];
+const charNodes = chars.map((ch, i) => {
+  const n = chars.length, fs = n <= 4 ? 176 : Math.floor(700 / n);
+  const span = 640 / n;
+  const cx = 30 + (i - (n - 1) / 2) * span;
+  const g = el("g", {}, tagBody);
+  const tx = el("text", { x: 0, y: fs * 0.36, "text-anchor": "middle", "font-family": "KuaiLe", "font-size": fs, fill: "#fff", stroke: C.ink, "stroke-width": 0 }, g);
+  tx.textContent = ch;
+  return { g, cx };
+});
+
+// ---- 副标题 ----
+const sub = $("sub");
+const marker = el("rect", { x: -330, y: -8, height: 40, rx: 20, fill: "#FFD45A" }, sub);
+const subText = el("text", { x: 0, y: 26, "text-anchor": "middle", "font-family": "NotoSC", "font-weight": 800, "font-size": 64, fill: C.ink, "letter-spacing": 6 }, sub);
+subText.textContent = SUB;
+const subClip = el("clipPath", { id: "subClip" }, $("svg").querySelector("defs"));
+const subClipRect = el("rect", { x: -400, y: -80, height: 160 }, subClip);
+subText.setAttribute("clip-path", "url(#subClip)");
+
+// ---- 闪光星星 ----
+const SPARK = [[330, 640, 0], [770, 630, 0.25], [520, 1260, 0.5], [80, 700, 0.15], [1010, 720, 0.4], [600, 330, 0.6]];
+const sparkG = $("sparkles");
+const sparkNodes = SPARK.map(([x, y, d]) => {
+  const g = el("g", {}, sparkG);
+  el("path", { d: "M0 -40 Q4 -4 40 0 Q4 4 0 40 Q-4 4 -40 0 Q-4 -4 0 -40 Z", fill: "#FFC94A", stroke: C.ink, "stroke-width": 4 }, g);
+  return { g, x, y, d };
+});
+
+window.render = function (t) {
+  // 镜头：开箱阶段缓推，标题落下时回到全景并轻微冲击
+  const push = 0.07 * smooth(0, 1.9, t) * (1 - smooth(1.9, 2.4, t));
+  const punch = 0.025 * Math.exp(-6 * Math.max(0, t - T.chars - 0.3)) * (t > T.chars + 0.3 ? 1 : 0);
+  const cs = 1 + push + punch;
+  const cy = lerp(1150, 960, smooth(1.9, 2.5, t));
+  $("cam").setAttribute("transform", `translate(540 ${cy}) scale(${cs}) translate(-540 ${-cy})`);
+
+  // 光芒
+  const rayIn = spring(t - T.pop, 10, 0.9);
+  const rayY = lerp(1150, 900, smooth(1.9, 2.5, t));
+  rays.setAttribute("transform", `translate(540 ${rayY}) rotate(${t * 12}) scale(${rayIn})`);
+
+  // 纸箱：自由落体 → 落地压扁 → 蓄力抖动 → 开盖 → 下沉出画
+  let by;
+  if (t < T.land) by = -820 * (1 - Math.pow(t / T.land, 2));
+  else by = 0;
+  by += 1100 * easeIn((t - T.boxOut) / 0.5);
+  const dt = t - T.land;
+  const sq = dt > 0 ? 0.2 * Math.exp(-9 * dt) * Math.cos(22 * dt) : 0;
+  const sq2 = t > T.pop ? 0.1 * Math.exp(-10 * (t - T.pop)) * Math.cos(26 * (t - T.pop)) : 0;
+  const sy = 1 - sq + sq2, sx = 1 + sq * 0.8 - sq2 * 0.6;
+  const shake = (t > 0.65 && t < T.pop) ? Math.sin(t * 70) * 4 * smooth(0.65, 0.95, t) : 0;
+  box.setAttribute("transform", `translate(540 ${1150 + by}) rotate(${shake}) translate(0 175) scale(${sx} ${sy}) translate(0 -175)`);
+  boxShadow.setAttribute("opacity", 0.18 * clamp(1 - Math.abs(Math.min(0, by)) / 900) * (t < T.boxOut ? 1 : 1 - smooth(T.boxOut, T.boxOut + 0.3, t)));
+  const lp = Math.max(0, t - T.pop);
+  lid.setAttribute("transform", `translate(${lp * 900} ${-3200 * lp + 900 * lp * lp}) rotate(${lp * 220})`);
+  lid.setAttribute("opacity", t > T.pop + 0.7 ? 0 : 1);
+  boxHole.setAttribute("opacity", t > T.pop ? 1 : 0);
+
+  // 贴纸：从箱口抛物线弹出，落位后弹簧缩放、轻轻漂浮
+  STICKERS.forEach((s, i) => {
+    const k = t - s.t0;
+    if (k <= 0) { s.node.setAttribute("opacity", 0); return; }
+    const fly = 0.55;
+    const e = easeOut(k / fly);
+    const ox = 540, oy = 1150 - 20 + by;
+    let x = lerp(ox, s.x, e);
+    let y = lerp(oy, s.y, e) - s.arc * 4 * e * (1 - e);
+    const sc = 0.35 + 0.65 * spring(k, 15, 0.45);
+    const rot = lerp(s.rot - 200 * (i % 2 ? 1 : -1), s.rot, e) + (k > fly ? Math.sin((t + i) * 2.2) * 3 : 0);
+    if (k > fly) y += Math.sin((t - s.t0) * 2.4 + i * 1.3) * 8 * smooth(s.t0 + fly, s.t0 + fly + 0.4, t);
+    s.node.setAttribute("opacity", 1);
+    s.node.setAttribute("transform", `translate(${x} ${y}) rotate(${rot}) scale(${sc})`);
+  });
+
+  // 吊牌：从顶部挂绳落下，钟摆摆动后停稳
+  const tk = t - T.tag;
+  const drop = spring(tk, 11, 0.62);
+  const ty = lerp(-420, 860, drop);
+  const swing = tk > 0 ? 9 * Math.exp(-2.6 * tk) * Math.sin(7.5 * tk) : 0;
+  tag.setAttribute("opacity", tk > 0 ? 1 : 0);
+  // 绳子从画面顶端连到吊牌孔
+  const hole = { x: -TW / 2 + 62, y: 0 };
+  const rad = swing * Math.PI / 180;
+  const hx = 540 + hole.x * Math.cos(rad), hy = ty + hole.x * Math.sin(rad);
+  string.setAttribute("d", `M570 -40 Q${(570 + hx) / 2 - 30} ${(hy - 40) / 2 + 30} ${hx} ${hy}`);
+  string.setAttribute("opacity", tk > 0 ? 1 : 0);
+  tagBody.setAttribute("transform", `translate(540 ${ty}) rotate(${swing})`);
+  charNodes.forEach((c, i) => {
+    const k = t - (T.chars + i * 0.09);
+    const s = spring(k, 18, 0.45);
+    c.g.setAttribute("transform", `translate(${c.cx} ${-60 * (1 - s)}) scale(${s})`);
+  });
+  const sh = smooth(T.shine, T.shine + 0.6, t);
+  shine.setAttribute("x", lerp(-TW / 2 - 200, TW / 2 + 80, sh));
+
+  // 副标题：记号笔划过 + 文字从左擦出
+  const sk = t - T.sub;
+  sub.setAttribute("transform", `translate(540 1120)`);
+  const mw = 660 * easeOut(sk / 0.45);
+  marker.setAttribute("width", Math.max(0, mw));
+  marker.setAttribute("x", -330);
+  subClipRect.setAttribute("width", Math.max(0, 800 * easeOut((sk - 0.08) / 0.5)));
+  sub.setAttribute("opacity", sk > 0 ? 1 : 0);
+
+  // 星星：标题落定后依次闪烁
+  sparkNodes.forEach(n => {
+    const k = t - (T.chars + 0.6 + n.d);
+    const s = k > 0 ? spring(k, 16, 0.4) * (0.85 + 0.15 * Math.sin(k * 6)) : 0;
+    n.g.setAttribute("transform", `translate(${n.x} ${n.y}) rotate(${k * 40}) scale(${Math.max(0, s)})`);
+  });
+};
+
+document.fonts.load('176px "KuaiLe"', NAME).then(() => document.fonts.load('800 64px "NotoSC"', SUB)).then(() => document.fonts.ready).then(() => { window.render(0); window.ready = true; });
+</script>
+</body>
+</html>
