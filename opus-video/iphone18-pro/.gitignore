@@ -1,0 +1,9 @@
+fonts/*.ttf
+qa/s_*.png
+audio/music.wav
+audio/sfx.wav
+audio/mix_raw.wav
+audio/mix.wav
+tools/__pycache__/
+out/
+source/intro.mp4

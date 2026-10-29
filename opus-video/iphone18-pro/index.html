@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>好物分享 · iPhone 18 Pro 系列</title>
+<style>
+@font-face { font-family: "KuaiLe"; src: url("fonts/ZCOOLKuaiLe.ttf"); }
+@font-face { font-family: "NotoSC"; src: url("fonts/NotoSansSC.ttf"); font-weight: 100 900; }
+html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #FFF4E4; }
+svg { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<svg id="svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <pattern id="dots" width="36" height="36" patternUnits="userSpaceOnUse">
+      <circle cx="18" cy="18" r="2.6" fill="#F1DCC0"/>
+    </pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#7A4A22" flood-opacity="0.22"/>
+    </filter>
+    <linearGradient id="shine" x1="0" x2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFB8A8"/>
+      <stop offset="0.55" stop-color="#FFD9A0"/>
+      <stop offset="1" stop-color="#A8D8F0"/>
+    </linearGradient>
+    <radialGradient id="glass" cx="0.38" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#5A6B8C"/>
+      <stop offset="0.6" stop-color="#1E2433"/>
+      <stop offset="1" stop-color="#0E1018"/>
+    </radialGradient>
+    <linearGradient id="chipG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5B4A42"/>
+      <stop offset="1" stop-color="#2A1E18"/>
+    </linearGradient>
+  </defs>
+  <rect id="bg" width="1080" height="1920" fill="#FFF4E4"/>
+  <g id="rays"></g>
+  <rect width="1080" height="1920" fill="url(#dots)"/>
+  <circle id="blob" cx="540" cy="930" r="470" opacity="0.55"/>
+  <g id="cam"><g id="shots"></g></g>
+</svg>
+<script>
+window.ready = false;
+const NS = "http://www.w3.org/2000/svg";
+const $ = id => document.getElementById(id);
+const el = (tag, attrs = {}, parent) => {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+};
+const txt = (s, attrs, parent) => { const n = el("text", attrs, parent); n.textContent = s; return n; };
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const smooth = (a, b, t) => { const x = clamp((t - a) / (b - a)); return x * x * (3 - 2 * x); };
+const easeOut = x => 1 - Math.pow(1 - clamp(x), 3);
+const easeIn = x => Math.pow(clamp(x), 3);
+function spring(x, w = 16, z = 0.72) {
+  if (x <= 0) return 0;
+  const wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * x) * (Math.cos(wd * x) + (z * w / wd) * Math.sin(wd * x));
+}
+const pop = (x) => spring(x, 18, 0.45);          // 贴纸档
+const card = (x) => spring(x, 15, 0.72);         // 卡片 / 镜头档
+const heavy = (x) => spring(x, 10, 0.9);         // 大字档
+const tf = (n, x, y, s = 1, r = 0) => n.setAttribute("transform", `translate(${x} ${y}) rotate(${r}) scale(${s})`);
+function hexMix(a, b, k) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const A = p(a), B = p(b);
+  return "#" + A.map((v, i) => Math.round(lerp(v, B[i], k)).toString(16).padStart(2, "0")).join("");
+}
+
+const PARAMS = new URLSearchParams(location.search);
+const NAME = PARAMS.get("name") || "好物日记";      // 频道名（占位）
+const C = { cream: "#FFF4E4", ink: "#3B2A20", coral: "#FF6B57", kraft: "#D99A5B", yellow: "#FFD45A", ray: "#FFE9CC",
+            blue: "#7FB7E8", green: "#5DBB76", pink: "#F7A8C4" };
+
+// 时间表：120 BPM，一小节 2 秒；镜头切在小节线上
+const SHOTS = [
+  { id: "hero",   t0: 0,  dur: 4, blob: "#FFD9C9" },
+  { id: "chip",   t0: 4,  dur: 4, blob: "#E2D6F5" },
+  { id: "lens",   t0: 8,  dur: 6, blob: "#FFE3A8" },
+  { id: "cool",   t0: 14, dur: 4, blob: "#D4ECF8" },
+  { id: "batt",   t0: 18, dur: 4, blob: "#D8F0DC" },
+  { id: "island", t0: 22, dur: 4, blob: "#FFD6E2" },
+  { id: "colors", t0: 26, dur: 4, blob: "#E9DCD0" },
+  { id: "price",  t0: 30, dur: 4, blob: "#FFE1B0" },
+  { id: "end",    t0: 34, dur: 4, blob: "#FFD9C9" },
+];
+const DURATION = 38;
+
+// ---- 背景光芒 ----
+const rays = $("rays");
+for (let i = 0; i < 16; i++) {
+  const a0 = (i / 16) * Math.PI * 2, a1 = a0 + Math.PI / 16, R = 1900;
+  el("path", { d: `M0 0 L${R * Math.cos(a0)} ${R * Math.sin(a0)} L${R * Math.cos(a1)} ${R * Math.sin(a1)} Z`, fill: C.ray }, rays);
+}
+
+// ---- 公用部件 ----
+// 标题：快乐体大字，后面一道记号笔
+function title(parent, s, y, size = 118) {
+  const g = el("g", {}, parent);
+  const mk = el("rect", { y: size * 0.05, height: size * 0.36, rx: size * 0.18, fill: C.yellow }, g);
+  const t = txt(s, { x: 0, y: size * 0.36, "text-anchor": "middle", "font-family": "KuaiLe", "font-size": size, fill: C.ink }, g);
+  const w = t.getComputedTextLength();
+  return { g, y, w, update(k) {
+    const s1 = heavy(k);
+    tf(g, 540, this.y + 50 * (1 - s1), lerp(0.7, 1, s1), -3 * (1 - s1));
+    g.setAttribute("opacity", k > 0 ? clamp(k / 0.12) : 0);
+    const mw = (w + 40) * easeOut((k - 0.25) / 0.4);
+    mk.setAttribute("x", -w / 2 - 20); mk.setAttribute("width", Math.max(0, mw));
+  } };
+}
+// 说明条：白底描边胶囊，从左擦出
+let clipId = 0;
+function caption(parent, s, y, size = 50) {
+  const g = el("g", {}, parent);
+  const t = txt(s, { x: 0, y: size * 0.36, "text-anchor": "middle", "font-family": "NotoSC", "font-weight": 800, "font-size": size, fill: C.ink, "letter-spacing": 2 }, g);
+  const w = t.getComputedTextLength() + 90, h = size * 1.9;
+  const sh = el("rect", { x: -w / 2 + 8, y: -h / 2 + 10, width: w, height: h, rx: h / 2, fill: C.ink }, g);
+  const bx = el("rect", { x: -w / 2, y: -h / 2, width: w, height: h, rx: h / 2, fill: "#fff", stroke: C.ink, "stroke-width": 5 }, g);
+  g.appendChild(t);
+  const id = "cap" + (clipId++);
+  const cp = el("clipPath", { id }, $("svg").querySelector("defs"));
+  const cr = el("rect", { x: -w / 2 - 20, y: -h, height: h * 2 }, cp);
+  t.setAttribute("clip-path", `url(#${id})`);
+  return { g, update(k) {
+    const s1 = card(k);
+    g.setAttribute("opacity", k > 0 ? 1 : 0);
+    tf(g, 540, y, lerp(0.85, 1, s1));
+    sh.setAttribute("opacity", 0.9 * clamp(k / 0.2)); bx.setAttribute("opacity", clamp(k / 0.1));
+    cr.setAttribute("width", Math.max(0, (w + 40) * easeOut((k - 0.08) / 0.45)));
+  } };
+}
+function foot(parent, s, y) {
+  const t = txt(s, { x: 540, y, "text-anchor": "middle", "font-family": "NotoSC", "font-weight": 600, "font-size": 34, fill: "#8A6A55" }, parent);
+  return { update(k) { t.setAttribute("opacity", clamp(k / 0.3)); } };
+}
+function sparkle(parent) {
+  const g = el("g", {}, parent);
+  el("path", { d: "M0 -40 Q4 -4 40 0 Q4 4 0 40 Q-4 4 -40 0 Q-4 -4 0 -40 Z", fill: "#FFC94A", stroke: C.ink, "stroke-width": 4 }, g);
+  return g;
+}
+function sparkles(parent, list) {
+  const nodes = list.map(([x, y, d, s]) => ({ g: sparkle(parent), x, y, d, s: s || 1 }));
+  return { update(k) { nodes.forEach(n => {
+    const q = k - n.d;
+    const s = q > 0 ? pop(q) * (0.85 + 0.15 * Math.sin(q * 6)) * n.s : 0;
+    tf(n.g, n.x, n.y, Math.max(0, s), q * 40);
+  }); } };
+}
+// 手机背面：通栏镜头平台 + 三摄（示意，无品牌标志）
+function phoneBack(parent, color, opts = {}) {
+  const g = el("g", {}, parent);
+  const W = 400, H = 820, dark = opts.dark;
+  el("rect", { x: -W / 2 + 10, y: -H / 2 + 14, width: W, height: H, rx: 78, fill: C.ink, opacity: 0.9 }, g);
+  el("rect", { x: -W / 2, y: -H / 2, width: W, height: H, rx: 78, fill: color, stroke: C.ink, "stroke-width": 8 }, g);
+  el("rect", { x: -W / 2 + 26, y: -H / 2 + 26, width: 40, height: H - 52, rx: 20, fill: "#fff", opacity: dark ? 0.08 : 0.25 }, g);
+  // 镜头平台
+  const pc = hexMix(color, dark ? "#ffffff" : "#000000", 0.12);
+  el("rect", { x: -W / 2 + 4, y: -H / 2 + 40, width: W - 8, height: 250, rx: 46, fill: pc, stroke: C.ink, "stroke-width": 6 }, g);
+  const lens = (x, y, r) => {
+    el("circle", { cx: x, cy: y, r: r + 12, fill: hexMix(pc, "#000000", 0.25), stroke: C.ink, "stroke-width": 5 }, g);
+    el("circle", { cx: x, cy: y, r, fill: "url(#glass)" }, g);
+    el("circle", { cx: x - r * 0.3, cy: y - r * 0.3, r: r * 0.22, fill: "#fff", opacity: 0.55 }, g);
+  };
+  lens(-100, -H / 2 + 110, 46); lens(-100, -H / 2 + 222, 46); lens(10, -H / 2 + 166, 46);
+  el("circle", { cx: 110, cy: -H / 2 + 110, r: 20, fill: "#FFF1C9", stroke: C.ink, "stroke-width": 4 }, g);
+  el("circle", { cx: 110, cy: -H / 2 + 222, r: 12, fill: C.ink, opacity: 0.7 }, g);
+  return g;
+}
+// 手机正面
+function phoneFront(parent) {
+  const g = el("g", {}, parent);
+  const W = 420, H = 860;
+  el("rect", { x: -W / 2 + 10, y: -H / 2 + 14, width: W, height: H, rx: 80, fill: C.ink, opacity: 0.9 }, g);
+  el("rect", { x: -W / 2, y: -H / 2, width: W, height: H, rx: 80, fill: "#2B2B30", stroke: C.ink, "stroke-width": 8 }, g);
+  el("rect", { x: -W / 2 + 18, y: -H / 2 + 18, width: W - 36, height: H - 36, rx: 64, fill: "url(#wall)" }, g);
+  return g;
+}
+
+// ---- 各镜头 ----
+const shotsG = $("shots");
+const BUILD = {
+  hero(g) {
+    const sp = sparkles(g, [[190, 640, 0.9], [905, 720, 1.05], [860, 1240, 1.2, 0.8], [210, 1180, 1.35, 0.8]]);
+    const ph = el("g", {}, g); const back = phoneBack(ph, "#7A2E3E", { dark: true });
+    const ti = title(g, "iPhone 18 Pro 系列", 340, 96);
+    const ca = caption(g, "9 月 18 日已开售", 1440);
+    return k => {
+      // 从上方落下，落地压扁回弹
+      const fall = clamp(k / 0.42);
+      const y = k < 0.42 ? lerp(-700, 930, fall * fall) : 930;
+      const d = k - 0.42, sq = d > 0 ? 0.16 * Math.exp(-8 * d) * Math.cos(20 * d) : 0;
+      ph.setAttribute("transform", `translate(540 ${y}) rotate(${-6 + 3 * Math.sin(k * 1.4)}) translate(0 410) scale(${(1 + sq * 0.7) * 0.92} ${(1 - sq) * 0.92}) translate(0 -410)`);
+      ti.update(k - 0.5); ca.update(k - 1.0); sp.update(k);
+    };
+  },
+  chip(g) {
+    const rings = [0, 1, 2].map(() => el("circle", { cx: 540, cy: 930, r: 230, fill: "none", stroke: C.coral, "stroke-width": 8 }, g));
+    // 电路线
+    const traces = [];
+    const T = [[-1, -0.6], [-1, 0.2], [-1, 0.7], [1, -0.5], [1, 0.3], [1, 0.75]];
+    T.forEach(([sx, fy]) => {
+      const y0 = 930 + fy * 160, x0 = 540 + sx * 230;
+      const p = el("path", { d: `M${x0} ${y0} L${x0 + sx * 90} ${y0} L${x0 + sx * 130} ${y0 + fy * 60} L${x0 + sx * 230} ${y0 + fy * 60}`, fill: "none", stroke: C.ink, "stroke-width": 7, "stroke-linecap": "round", "stroke-linejoin": "round", "stroke-dasharray": 400, "stroke-dashoffset": 400 }, g);
+      const dot = el("circle", { cx: x0 + sx * 230, cy: y0 + fy * 60, r: 13, fill: C.yellow, stroke: C.ink, "stroke-width": 5 }, g);
+      traces.push({ p, dot });
+    });
+    const chip = el("g", {}, g);
+    for (let i = 0; i < 7; i++) for (const [dx, dy, w, h] of [[-150 + i * 50, -238, 18, 40], [-150 + i * 50, 198, 18, 40], [-238, -150 + i * 50, 40, 18], [198, -150 + i * 50, 40, 18]])
+      el("rect", { x: dx - (w === 18 ? 9 : 0), y: dy - (h === 18 ? 9 : 0), width: w, height: h, rx: 5, fill: "#C9A88A", stroke: C.ink, "stroke-width": 4 }, chip);
+    el("rect", { x: -200, y: -200, width: 400, height: 400, rx: 46, fill: "url(#chipG)", stroke: C.ink, "stroke-width": 8 }, chip);
+    el("rect", { x: -160, y: -160, width: 320, height: 320, rx: 28, fill: "none", stroke: "#fff", "stroke-opacity": 0.18, "stroke-width": 4 }, chip);
+    txt("A20", { x: 0, y: 10, "text-anchor": "middle", "font-family": "KuaiLe", "font-size": 130, fill: "#fff" }, chip);
+    txt("Pro", { x: 0, y: 110, "text-anchor": "middle", "font-family": "KuaiLe", "font-size": 76, fill: C.yellow }, chip);
+    const shineR = el("rect", { x: -200, y: -200, width: 90, height: 400, fill: "url(#shine)", opacity: 0.8 }, chip);
+    const badge = (x, y, big, small, color) => {
+      const b = el("g", { filter: "url(#shadow)" }, g);
+      el("circle", { r: 120, fill: "#fff", stroke: C.ink, "stroke-width": 6 }, b);
+      el("circle", { r: 102, fill: color }, b);
+      txt(big, { x: 0, y: 14, "text-anchor": "middle", "font-family": "KuaiLe", "font-size": 74, fill: C.ink }, b);
+      txt(small, { x: 0, y: 66, "text-anchor": "middle", "font-family": "NotoSC", "font-weight": 800, "font-size": 30, fill: C.ink }, b);
+      return { b, x, y };
+    };
+    const b1 = badge(250, 1230, "2纳米", "工艺制程", "#FFE1E4");
+    const b2 = badge(830, 1230, "+40%", "图形性能", "#FFF1C9");
+    const ti = title(g, "A20 Pro 芯片", 340);
+    const ca = caption(g, "图形性能最高 +40% · 对比 A19 Pro", 1450, 44);
+    return k => {
+      const s = card(k);
+      tf(chip, 540, 930, lerp(0.4, 1, s) * (1 + 0.04 * Math.exp(-6 * Math.max(0, k - 1)) * (k > 1 ? 1 : 0)), lerp(-20, 0, s));
+      clipShine(shineR, k, 0.6);
+      rings.forEach((r, i) => { const q = ((k - 0.5 - i * 0.5) % 1.5 + 1.5) % 1.5; const on = k > 0.5 + i * 0.5;
+        r.setAttribute("r", 230 + q * 220); r.setAttribute("opacity", on ? (1 - q / 1.5) * 0.7 : 0); });
+      traces.forEach((tr, i) => { const q = easeOut((k - 0.3 - i * 0.06) / 0.5); tr.p.setAttribute("stroke-dashoffset", 400 * (1 - q)); tf(tr.dot, 0, 0, 1); tr.dot.setAttribute("opacity", q > 0.95 ? 1 : 0); });
+      [[b1, 1.0], [b2, 1.5]].forEach(([b, d]) => tf(b.b, b.x, b.y, Math.max(0, pop(k - d)), 6 * Math.sin((k - d) * 2.2)));
+      ti.update(k - 0.1); ca.update(k - 2.0);
+    };
+  },
+  lens(g) {
+    const LX = 540, LY = 860, R = 300;
+    const ring = el("g", {}, g);
+    el("circle", { cx: LX + 12, cy: LY + 16, r: R + 40, fill: C.ink, opacity: 0.9 }, ring);
+    el("circle", { cx: LX, cy: LY, r: R + 40, fill: "#D9D4CC", stroke: C.ink, "stroke-width": 8 }, ring);
+    el("circle", { cx: LX, cy: LY, r: R + 14, fill: "#8E8780", stroke: C.ink, "stroke-width": 5 }, ring);
+    for (let i = 0; i < 60; i++) { const a = i / 60 * Math.PI * 2;
+      el("line", { x1: LX + (R + 22) * Math.cos(a), y1: LY + (R + 22) * Math.sin(a), x2: LX + (R + 36) * Math.cos(a), y2: LY + (R + 36) * Math.sin(a), stroke: C.ink, "stroke-width": 3, opacity: 0.5 }, ring); }
+    const cp = el("clipPath", { id: "lensClip" }, $("svg").querySelector("defs"));
+    el("circle", { cx: LX, cy: LY, r: R }, cp);
+    const inner = el("g", { "clip-path": "url(#lensClip)" }, ring);
+    el("circle", { cx: LX, cy: LY, r: R, fill: "url(#glass)" }, inner);
+    const glow = el("circle", { cx: LX, cy: LY, r: 100, fill: "#FFE7A0", opacity: 0.5 }, inner);
+    const blades = [0, 1, 2, 3, 4, 5].map(i => el("path", { fill: i % 2 ? "#2F2A28" : "#3D3633", stroke: "#15110F", "stroke-width": 4, "stroke-linejoin": "round" }, inner));
+    el("circle", { cx: LX - 110, cy: LY - 120, r: 60, fill: "#fff", opacity: 0.16 }, ring);
+    el("circle", { cx: LX - 150, cy: LY - 40, r: 20, fill: "#fff", opacity: 0.22 }, ring);
+    // 光圈读数
+    const STEPS = [{ t: 0, f: "ƒ/1.48", r: 235, note: "暗光" }, { t: 2.0, f: "ƒ/1.8", r: 185, note: "人像" }, { t: 3.5, f: "ƒ/4", r: 92, note: "大景深" }];
+    const read = el("g", {}, g);
+    el("rect", { x: -190, y: -70, width: 380, height: 140, rx: 70, fill: C.ink }, read);
+    const fs = STEPS.map(s => txt(s.f, { x: -20, y: 30, "text-anchor": "middle", "font-family": "KuaiLe", "font-size": 92, fill: C.yellow }, read));
+    const notes = STEPS.map(s => {
+      const n = el("g", {}, read);
+      el("rect", { x: 140, y: -36, width: 150, height: 72, rx: 36, fill: C.coral, stroke: C.ink, "stroke-width": 5 }, n);
+      txt(s.note, { x: 215, y: 14, "text-anchor": "middle", "font-family": "NotoSC", "font-weight": 800, "font-size": 34, fill: "#fff" }, n);
+      return n;
+    });
+    const ti = title(g, "主摄可变光圈", 330);
+    const ca = caption(g, "iPhone 首次能调光圈 · 4 档手动", 1450, 44);
+    const radiusAt = k => { let r = STEPS[0].r; for (let i = 1; i < STEPS.length; i++) r += (STEPS[i].r - STEPS[i - 1].r) * spring(k - STEPS[i].t, 16, 0.6); return r; };
+    return k => {
+      const s = heavy(k);
+      tf(ring, LX * (1 - lerp(0.5, 1, s)), LY * (1 - lerp(0.5, 1, s)), lerp(0.5, 1, s));
+      // 镜头慢慢推近
+      const r = radiusAt(k), rot = (235 - r) * 0.35;
+      blades.forEach((b, i) => {
+        const a0 = (i / 6) * Math.PI * 2 + rot * Math.PI / 180, a1 = a0 + Math.PI / 3;
+        const v0 = [LX + r * Math.cos(a0), LY + r * Math.sin(a0)], v1 = [LX + r * Math.cos(a1), LY + r * Math.sin(a1)];
+        const F = 900, o0 = a0 + 0.9, o1 = a1 + 0.9;
+        b.setAttribute("d", `M${v0[0]} ${v0[1]} L${v1[0]} ${v1[1]} L${LX + F * Math.cos(o1)} ${LY + F * Math.sin(o1)} L${LX + F * Math.cos(o0)} ${LY + F * Math.sin(o0)} Z`);
+      });
+      glow.setAttribute("r", r * 0.8); glow.setAttribute("opacity", 0.25 + 0.35 * (r / 235));
+      const rs = card(k - 0.6);
+      tf(read, 540, 1290, Math.max(0, lerp(0.6, 1, rs)));
+      read.setAttribute("opacity", k > 0.6 ? 1 : 0);
+      STEPS.forEach((st, i) => {
+        const next = STEPS[i + 1] ? STEPS[i + 1].t : 99;
+        const vin = i === 0 ? 1 : pop(k - st.t), out = k > next ? 0 : 1;
+        fs[i].setAttribute("opacity", out * (i === 0 ? 1 : clamp((k - st.t) / 0.08)));
+        fs[i].setAttribute("transform", `translate(0 ${30 * (1 - vin)})`);
+        notes[i].setAttribute("opacity", out * (k - st.t > 0.15 ? 1 : 0));
+        notes[i].setAttribute("transform", `translate(215 0) scale(${Math.max(0, pop(k - st.t - 0.15))}) translate(-215 0)`);
+      });
+      ti.update(k - 0.1); ca.update(k - 1.0);
+    };
+  },
+  cool(g) {
+    const ph = el("g", {}, g);
+    const W = 420, H = 820;
+    el("rect", { x: -W / 2 + 10, y: -H / 2 + 14, width: W, height: H, rx: 78, fill: C.ink, opacity: 0.9 }, ph);
+    el("rect", { x: -W / 2, y: -H / 2, width: W, height: H, rx: 78, fill: "#F3EDE4", stroke: C.ink, "stroke-width": 8 }, ph);
+    // 内部示意：电池 + 主板
+    el("rect", { x: -160, y: 40, width: 320, height: 320, rx: 30, fill: "#CFE8C9", stroke: C.ink, "stroke-width": 5, opacity: 0.8 }, ph);
+    el("rect", { x: -160, y: -360, width: 320, height: 370, rx: 30, fill: "#E8DCCB", stroke: C.ink, "stroke-width": 5 }, ph);
+    const small = el("rect", { x: -70, y: -230, width: 140, height: 140, rx: 22, fill: "none", stroke: "#8A6A55", "stroke-width": 5, "stroke-dasharray": "14 10" }, ph);
+    const vc = el("g", {}, ph);
+    el("rect", { x: -121, y: -281, width: 242, height: 242, rx: 32, fill: "#A8D8F0", stroke: C.ink, "stroke-width": 6 }, vc);
+    for (let i = 0; i < 5; i++) el("path", { d: `M${-95} ${-245 + i * 42} q30 -14 60 0 t60 0 t60 0`, fill: "none", stroke: "#fff", "stroke-width": 6, "stroke-linecap": "round", opacity: 0.8 }, vc);
+    const lbl = el("g", {}, ph);
+    el("rect", { x: -90, y: -40, width: 180, height: 80, rx: 40, fill: C.coral, stroke: C.ink, "stroke-width": 5 }, lbl);
+    txt("3 倍", { x: 0, y: 18, "text-anchor": "middle", "font-family": "KuaiLe", "font-size": 56, fill: "#fff" }, lbl);
+    // 热浪：从红变蓝
+    const waves = [-120, 0, 120].map(x => el("path", { d: `M${x} 0 q-26 -40 0 -80 q26 -40 0 -80 q-26 -40 0 -80`, fill: "none", "stroke-width": 14, "stroke-linecap": "round" }, g));
+    const ti = title(g, "均热板面积 3 倍", 330);
+    const ca = caption(g, "持续性能最高提升 40%", 1440);
+    const ft = foot(g, "对比上一代 iPhone 17 Pro", 1545);
+    return k => {
+      const s = card(k);
+      tf(ph, 540, 900, lerp(0.6, 0.88, s), lerp(8, -3, s));
+      const gr = spring(k - 0.8, 12, 0.6);
+      tf(vc, 0, -160, lerp(140 / 242, 1, gr));
+      vc.setAttribute("transform", `translate(0 -160) scale(${lerp(140 / 242, 1, gr)}) translate(0 160)`);
+      small.setAttribute("opacity", k > 0.8 ? 0.9 : 0);
+      tf(lbl, 0, -160, Math.max(0, pop(k - 1.3)));
+      const cool = smooth(1.2, 2.2, k);
+      waves.forEach((w, i) => {
+        const q = (k * 0.9 + i * 0.33) % 1;
+        w.setAttribute("stroke", hexMix("#FF6B57", "#7FB7E8", cool));
+        w.setAttribute("transform", `translate(${540 + [-260, 0, 260][i] * 1.0} ${720 - q * 120})`);
+        w.setAttribute("opacity", (k > 0.2 ? 1 : 0) * Math.sin(q * Math.PI) * 0.85 * (1 - 0.6 * cool));
+      });
+      ti.update(k - 0.1); ca.update(k - 1.0); ft.update(k - 1.4);
+    };
+  },
+  batt(g) {
+    const b = el("g", {}, g);
+    const W = 340, H = 600;
+    el("rect", { x: -60, y: -H / 2 - 50, width: 120, height: 60, rx: 18, fill: C.ink }, b);
+    el("rect", { x: -W / 2 + 12, y: -H / 2 + 16, width: W, height: H, rx: 60, fill: C.ink, opacity: 0.9 }, b);
+    el("rect", { x: -W / 2, y: -H / 2, width: W, height: H, rx: 60, fill: "#fff", stroke: C.ink, "stroke-width": 10 }, b);
+    const cells = [0, 1, 2, 3, 4].map(i => el("rect", { x: -W / 2 + 30, y: H / 2 - 30 - (i + 1) * 104 + 8, width: W - 60, height: 92, rx: 22, fill: C.green, stroke: C.ink, "stroke-width": 5 }, b));
+    el("path", { d: "M14 -90 L-56 20 L-4 20 L-24 100 L56 -14 L4 -14 Z", fill: C.yellow, stroke: C.ink, "stroke-width": 7, "stroke-linejoin": "round" }, b);
+    const num = el("g", {}, g);
+    const nt = txt("0", { x: 0, y: 0, "text-anchor": "middle", "font-family": "KuaiLe", "font-size": 190, fill: C.coral, stroke: C.ink, "stroke-width": 6, "paint-order": "stroke" }, num);
+    txt("小时", { x: 0, y: 70, "text-anchor": "middle", "font-family": "NotoSC", "font-weight": 900, "font-size": 52, fill: C.ink }, num);
+    const ti = title(g, "视频播放最长 45 小时", 330, 88);
+    const ca = caption(g, "Pro Max 数据 · Pro 为 36 小时", 1440, 46);
+    const ft = foot(g, "＊海外 eSIM 版数据，国行实体卡版略少", 1545);
+    return k => {
+      tf(b, 400, 900, lerp(0.5, 0.95, card(k)), -6 * (1 - card(k)) - 4);
+      const fill = easeOut((k - 0.3) / 1.6);
+      cells.forEach((c, i) => c.setAttribute("opacity", fill * 5 > i + 0.5 ? 1 : 0.08));
+      cells.forEach((c, i) => c.setAttribute("fill", fill > 0.95 ? C.green : (i < 2 ? "#FFB347" : C.green)));
+      nt.textContent = Math.round(45 * fill);
+      tf(num, 810, 940, Math.max(0, lerp(0.6, 1, pop(k - 0.3))) * (1 + 0.08 * Math.exp(-8 * Math.max(0, k - 1.9)) * (k > 1.9 ? 1 : 0)));
+      num.setAttribute("opacity", k > 0.3 ? 1 : 0);
+      ti.update(k - 0.1); ca.update(k - 1.0); ft.update(k - 1.4);
+    };
+  },
+  island(g) {
+    const ph = phoneFront(g);
+    const isl = el("rect", { fill: "#111", rx: 0 }, ph);
+    const acts = [["#FF9F43", "⏱"], ["#F7A8C4", "♪"], ["#5DBB76", "➜"]].map(([c, s], i) => {
+      const a = el("g", {}, ph);
+      el("circle", { r: 30, fill: c, stroke: "#111", "stroke-width": 7 }, a);
+      txt(s, { x: 0, y: 13, "text-anchor": "middle", "font-family": "NotoSC", "font-weight": 900, "font-size": 36, fill: "#fff" }, a);
+      return a;
+    });
+    // 屏幕里的时钟
+    txt("9:41", { x: 0, y: -170, "text-anchor": "middle", "font-family": "NotoSC", "font-weight": 300, "font-size": 120, fill: "#fff" }, ph);
+    const zoomRing = el("circle", { cx: 0, cy: -370, r: 120, fill: "none", stroke: C.coral, "stroke-width": 8, "stroke-dasharray": "18 12" }, ph);
+    const ti = title(g, "灵动岛变小了", 330);
+    const ca = caption(g, "最多同时显示 3 个实时活动", 1450);
+    return k => {
+      tf(ph, 540, 900, lerp(0.6, 0.86, card(k)), lerp(-6, 2, card(k)));
+      const sh = spring(k - 0.8, 14, 0.55);
+      const w = lerp(150, 104, sh), h = lerp(46, 36, sh);
+      isl.setAttribute("x", -w / 2); isl.setAttribute("y", -390 - h / 2); isl.setAttribute("width", w); isl.setAttribute("height", h); isl.setAttribute("rx", h / 2);
+      zoomRing.setAttribute("opacity", clamp((k - 0.4) / 0.2) * (1 - smooth(1.4, 1.8, k)));
+      zoomRing.setAttribute("transform", `rotate(${k * 60} 0 -370)`);
+      acts.forEach((a, i) => { const q = pop(k - 1.6 - i * 0.25);
+        tf(a, [-108, 108, 0][i] * q, -390 + [0, 0, 80][i] * q, Math.max(0, q)); });
+      ti.update(k - 0.1); ca.update(k - 1.0);
+    };
+  },
+  colors(g) {
+    const COLS = [["#2C2C31", true], ["#E4E3DF", false], ["#CFE3EE", false], ["#6E2333", true]];
+    const phones = COLS.map(([c, d]) => { const p = el("g", {}, g); phoneBack(p, c, { dark: d }); return p; });
+    const st = sparkles(g, [[930, 560, 1.3], [980, 800, 1.45, 0.7]]);
+    const ti = title(g, "4 种配色", 330);
+    const ca = caption(g, "新增一款酒红色调", 1450);
+    return k => {
+      phones.forEach((p, i) => {
+        const q = pop(k - 0.1 - i * 0.12);
+        const ang = lerp(0, -24 + i * 16, q);
+        const lift = i === 3 ? -60 * spring(k - 1.2, 14, 0.6) : 0;
+        p.setAttribute("transform", `translate(${540 + lerp(0, -126 + i * 84, q)} ${1380 + lift}) rotate(${ang}) translate(0 -470) scale(${lerp(0.4, 0.58, clamp(q, 0, 1.2))})`);
+        p.setAttribute("opacity", k > 0.1 + i * 0.12 ? 1 : 0);
+      });
+      st.update(k); ti.update(k - 0.1); ca.update(k - 1.0);
+    };
+  },
+  price(g) {
+    const TAGS = [{ name: "Pro", price: "9999", y: 740, d: 0.2, fill: C.coral, sx: 260 }, { name: "Pro Max", price: "10999", y: 1060, d: 0.7, fill: "#FF8A3D", sx: 120 }];
+    const strG = el("g", {}, g);
+    const nodes = TAGS.map(T => {
+      const str = el("path", { fill: "none", stroke: C.ink, "stroke-width": 5, "stroke-linecap": "round" }, strG);
+      const tg = el("g", {}, g);
+      const TW = 820, TH = 230;
+      const path = `M${-TW / 2 + 60} ${-TH / 2} L${TW / 2 - 26} ${-TH / 2} Q${TW / 2} ${-TH / 2} ${TW / 2} ${-TH / 2 + 26} L${TW / 2} ${TH / 2 - 26} Q${TW / 2} ${TH / 2} ${TW / 2 - 26} ${TH / 2} L${-TW / 2 + 60} ${TH / 2} L${-TW / 2} 0 Z`;
+      el("path", { d: path, fill: C.ink, transform: "translate(10,12)", opacity: 0.9 }, tg);
+      el("path", { d: path, fill: T.fill, stroke: C.ink, "stroke-width": 6 }, tg);
+      el("circle", { cx: -TW / 2 + 54, cy: 0, r: 16, fill: C.cream, stroke: C.ink, "stroke-width": 5 }, tg);
+      txt(T.name, { x: -TW / 2 + 100, y: 20, "font-family": "KuaiLe", "font-size": 54, fill: "#fff" }, tg);
+      const pr = txt(T.price, { x: TW / 2 - 130, y: 40, "text-anchor": "end", "font-family": "KuaiLe", "font-size": 112, fill: "#fff", stroke: C.ink, "stroke-width": 6, "paint-order": "stroke" }, tg);
+      txt("元起", { x: TW / 2 - 30, y: 34, "text-anchor": "end", "font-family": "NotoSC", "font-weight": 900, "font-size": 44, fill: C.ink }, tg);
+      return { T, str, tg, TW };
+    });
+    const ti = title(g, "国行售价", 330);
+    const ca = caption(g, "256GB 起步 · 最高 2TB", 1440);
+    return k => {
+      nodes.forEach(({ T, str, tg, TW }) => {
+        const q = k - T.d, drop = spring(q, 11, 0.62), y = lerp(-300, T.y, drop);
+        const sw = q > 0 ? 8 * Math.exp(-2.6 * q) * Math.sin(7.5 * q) : 0, rad = sw * Math.PI / 180;
+        const hx = 540 + (-TW / 2 + 54) * Math.cos(rad), hy = y + (-TW / 2 + 54) * Math.sin(rad);
+        str.setAttribute("d", `M${T.sx} -40 Q${(T.sx + hx) / 2 - 30} ${(hy - 40) / 2 + 30} ${hx} ${hy}`);
+        str.setAttribute("opacity", q > 0 ? 1 : 0); tg.setAttribute("opacity", q > 0 ? 1 : 0);
+        tg.setAttribute("transform", `translate(540 ${y}) rotate(${sw})`);
+      });
+      ti.update(k - 0.05); ca.update(k - 1.4);
+    };
+  },
+  end(g) {
+    const str = el("path", { fill: "none", stroke: C.ink, "stroke-width": 5, "stroke-linecap": "round" }, g);
+    const tg = el("g", {}, g);
+    const TW = 800, TH = 300;
+    const path = `M${-TW / 2 + 70} ${-TH / 2} L${TW / 2 - 28} ${-TH / 2} Q${TW / 2} ${-TH / 2} ${TW / 2} ${-TH / 2 + 28} L${TW / 2} ${TH / 2 - 28} Q${TW / 2} ${TH / 2} ${TW / 2 - 28} ${TH / 2} L${-TW / 2 + 70} ${TH / 2} L${-TW / 2} 0 Z`;
+    el("path", { d: path, fill: C.ink, transform: "translate(10,12)", opacity: 0.9 }, tg);
+    el("path", { d: path, fill: C.coral, stroke: C.ink, "stroke-width": 6 }, tg);
+    el("circle", { cx: -TW / 2 + 62, cy: 0, r: 18, fill: C.cream, stroke: C.ink, "stroke-width": 5 }, tg);
+    const chars = [...NAME], n = chars.length, fsz = n <= 4 ? 176 : Math.floor(700 / n), span = 640 / n;
+    const cn = chars.map((ch, i) => { const c = el("g", {}, tg);
+      txt(ch, { x: 0, y: fsz * 0.36, "text-anchor": "middle", "font-family": "KuaiLe", "font-size": fsz, fill: "#fff" }, c);
+      return { c, cx: 30 + (i - (n - 1) / 2) * span }; });
+    const sp = sparkles(g, [[170, 660, 1.0], [930, 700, 1.15], [880, 1300, 1.3, 0.8], [200, 1260, 1.45, 0.8]]);
+    const l1 = caption(g, "标准版 iPhone 18 还没发布", 1180, 50);
+    const l2 = foot(g, "出了再来聊", 1330);
+    return k => {
+      const drop = spring(k, 11, 0.62), y = lerp(-420, 840, drop);
+      const sw = k > 0 ? 9 * Math.exp(-2.6 * k) * Math.sin(7.5 * k) : 0, rad = sw * Math.PI / 180;
+      const hx = 540 + (-TW / 2 + 62) * Math.cos(rad), hy = y + (-TW / 2 + 62) * Math.sin(rad);
+      str.setAttribute("d", `M570 -40 Q${(570 + hx) / 2 - 30} ${(hy - 40) / 2 + 30} ${hx} ${hy}`);
+      tg.setAttribute("transform", `translate(540 ${y}) rotate(${sw})`);
+      cn.forEach((c, i) => { const s = pop(k - 0.25 - i * 0.09); c.c.setAttribute("transform", `translate(${c.cx} ${-60 * (1 - s)}) scale(${s})`); });
+      sp.update(k); l1.update(k - 0.9); l2.update(k - 1.3);
+    };
+  },
+};
+function clipShine(node, k, d) {
+  const q = smooth(d, d + 0.6, k);
+  node.setAttribute("x", lerp(-320, 240, q));
+  node.setAttribute("opacity", q > 0 && q < 1 ? 0.8 : 0);
+}
+
+let BUILT = [];
+function build() {
+  BUILT = SHOTS.map(s => { const g = el("g", {}, shotsG); return { ...s, g, update: BUILD[s.id](g) }; });
+}
+
+window.render = function (t) {
+  // 背景：光芒慢转，色块按镜头换色
+  rays.setAttribute("transform", `translate(540 930) rotate(${t * 8})`);
+  let blob = SHOTS[0].blob;
+  for (let i = 1; i < SHOTS.length; i++) blob = hexMix(blob, SHOTS[i].blob, smooth(SHOTS[i].t0 - 0.15, SHOTS[i].t0 + 0.25, t));
+  $("blob").setAttribute("fill", blob);
+  $("blob").setAttribute("r", 470 + 18 * Math.sin(t * Math.PI));          // 每两拍呼吸一次
+
+  // 镜头：每个镜头内缓推，切点处轻微冲击
+  let cs = 1;
+  for (const s of SHOTS) { const k = t - s.t0; if (k >= 0 && k < s.dur) cs = 1 + 0.045 * smooth(0, s.dur, k) + 0.02 * Math.exp(-7 * k); }
+  $("cam").setAttribute("transform", `translate(540 960) scale(${cs}) translate(-540 -960)`);
+
+  // 转场：旧镜头向左甩出，新镜头从右侧弹入
+  BUILT.forEach((s, i) => {
+    const k = t - s.t0, last = i === BUILT.length - 1;
+    const outK = last ? 0 : (k - s.dur + 0.22) / 0.3;
+    const vis = k > -0.12 && (last || outK < 1);
+    s.g.setAttribute("display", vis ? "inline" : "none");
+    if (!vis) return;
+    const inX = i === 0 ? 0 : 1100 * (1 - card(k + 0.12));
+    const outX = -1200 * easeIn(outK), outR = -14 * easeIn(outK);
+    s.g.setAttribute("transform", `translate(${inX + outX} 0) rotate(${outR} 540 960)`);
+    s.update(Math.max(0, k));
+  });
+};
+
+document.fonts.load('120px "KuaiLe"', "好物日记iPhone 18 Pro 系列").then(() => document.fonts.load('800 50px "NotoSC"', "标准版还没发布")).then(() => document.fonts.ready)
+  .then(() => { build(); window.render(0); window.ready = true; });
+</script>
+</body>
+</html>

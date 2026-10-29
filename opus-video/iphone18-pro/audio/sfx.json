@@ -1,0 +1,210 @@
+{
+"duration": 38,
+"events": [
+{
+"t": 0.0,
+"sound": "whoosh",
+"gain": 0.5
+},
+{
+"t": 0.42,
+"sound": "impact",
+"gain": 0.6
+},
+{
+"t": 1.0,
+"sound": "pop",
+"gain": 0.4
+},
+{
+"t": 3.78,
+"sound": "whoosh",
+"gain": 0.45
+},
+{
+"t": 5.0,
+"sound": "pop",
+"gain": 0.45
+},
+{
+"t": 5.5,
+"sound": "pop",
+"gain": 0.45
+},
+{
+"t": 7.78,
+"sound": "whoosh",
+"gain": 0.45
+},
+{
+"t": 8.6,
+"sound": "tick",
+"gain": 0.4
+},
+{
+"t": 10.0,
+"sound": "click",
+"gain": 0.8
+},
+{
+"t": 11.5,
+"sound": "click",
+"gain": 0.8
+},
+{
+"t": 13.78,
+"sound": "whoosh",
+"gain": 0.45
+},
+{
+"t": 14.8,
+"sound": "pop",
+"gain": 0.35
+},
+{
+"t": 15.3,
+"sound": "pop",
+"gain": 0.4
+},
+{
+"t": 17.78,
+"sound": "whoosh",
+"gain": 0.45
+},
+{
+"t": 18.3,
+"sound": "tick",
+"gain": 0.35
+},
+{
+"t": 18.62,
+"sound": "tick",
+"gain": 0.35
+},
+{
+"t": 18.94,
+"sound": "tick",
+"gain": 0.35
+},
+{
+"t": 19.26,
+"sound": "tick",
+"gain": 0.35
+},
+{
+"t": 19.580000000000002,
+"sound": "tick",
+"gain": 0.35
+},
+{
+"t": 19.9,
+"sound": "success",
+"gain": 0.45
+},
+{
+"t": 21.78,
+"sound": "whoosh",
+"gain": 0.45
+},
+{
+"t": 22.8,
+"sound": "pop",
+"gain": 0.35
+},
+{
+"t": 23.6,
+"sound": "pop",
+"gain": 0.3
+},
+{
+"t": 23.85,
+"sound": "pop",
+"gain": 0.3
+},
+{
+"t": 24.1,
+"sound": "pop",
+"gain": 0.3
+},
+{
+"t": 25.78,
+"sound": "whoosh",
+"gain": 0.45
+},
+{
+"t": 26.1,
+"sound": "pop",
+"gain": 0.25
+},
+{
+"t": 26.220000000000002,
+"sound": "pop",
+"gain": 0.25
+},
+{
+"t": 26.34,
+"sound": "pop",
+"gain": 0.25
+},
+{
+"t": 26.46,
+"sound": "pop",
+"gain": 0.25
+},
+{
+"t": 29.78,
+"sound": "whoosh",
+"gain": 0.45
+},
+{
+"t": 30.2,
+"sound": "whoosh",
+"gain": 0.3
+},
+{
+"t": 30.55,
+"sound": "success",
+"gain": 0.4
+},
+{
+"t": 30.7,
+"sound": "whoosh",
+"gain": 0.3
+},
+{
+"t": 31.05,
+"sound": "success",
+"gain": 0.4
+},
+{
+"t": 33.78,
+"sound": "whoosh",
+"gain": 0.45
+},
+{
+"t": 34.25,
+"sound": "click",
+"gain": 0.4
+},
+{
+"t": 34.34,
+"sound": "click",
+"gain": 0.4
+},
+{
+"t": 34.43,
+"sound": "click",
+"gain": 0.4
+},
+{
+"t": 34.52,
+"sound": "click",
+"gain": 0.4
+},
+{
+"t": 34.9,
+"sound": "success",
+"gain": 0.4
+}
+]
+}
